@@ -6,17 +6,15 @@ import SystemPackage
 public struct Repository {
   let _object: ManagedGitObject
 
-  public var head: AnyReference {
-    get throws {
-      try _object.withObjectPointer { repo in
-        let callbacks = GitCallbacks(free: git_reference_free)
-        return AnyReference(
-          _object: try .create(withCallbacks: callbacks) { pointer in
-            git_repository_head(&pointer, repo)
-          },
-          repository: self
-        )
-      }
+  public func head() throws -> AnyReference {
+    try _object.withObjectPointer { repo in
+      let callbacks = GitCallbacks(free: git_reference_free)
+      return AnyReference(
+        _object: try .create(withCallbacks: callbacks) { pointer in
+          git_repository_head(&pointer, repo)
+        },
+        repository: self
+      )
     }
   }
 }

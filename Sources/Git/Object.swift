@@ -1,13 +1,12 @@
 import Cgit2
 
-
 /// Workaround for Identifiable not being available on older platform versions.
 /// Prefer `Object` if it is available.
 protocol _BaseObject {
   var id: ObjectID { get }
 }
 
-@available(iOS 13, *)
+@available(iOS 13, macOS 10.15, *)
 protocol Object: _BaseObject, Identifiable {}
 
 public struct ObjectID: RawRepresentable {
@@ -25,8 +24,12 @@ public struct ObjectID: RawRepresentable {
     self.init(rawValue)
   }
 
-  func withBytes<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
-    try withUnsafePointer(to: rawValue) { oid in
+  func withUnsafePointer<Result>(_ body: (UnsafePointer<git_oid>) throws -> Result) rethrows -> Result {
+    try Swift.withUnsafePointer(to: rawValue, body)
+  }
+
+  func withUnsafeBytes<Result>(_ body: (UnsafeRawBufferPointer) throws -> Result) rethrows -> Result {
+    try withUnsafePointer { oid in
       let bytes = UnsafeRawBufferPointer(
         start: UnsafeRawPointer(oid),
         count: ObjectID._byteCount
@@ -38,7 +41,7 @@ public struct ObjectID: RawRepresentable {
 
 extension ObjectID: CustomStringConvertible {
   public var description: String {
-    withBytes { bytes in
+    withUnsafeBytes { bytes in
       bytes.reduce(into: "") { $0 += String(format: "%02x", $1) }
     }
   }
@@ -46,8 +49,8 @@ extension ObjectID: CustomStringConvertible {
 
 extension ObjectID: Equatable {
   public static func == (lhs: ObjectID, rhs: ObjectID) -> Bool {
-    lhs.withBytes { lhs in
-      rhs.withBytes { rhs in
+    lhs.withUnsafeBytes { lhs in
+      rhs.withUnsafeBytes { rhs in
         lhs.elementsEqual(rhs)
       }
     }
@@ -56,6 +59,6 @@ extension ObjectID: Equatable {
 
 extension ObjectID: Hashable {
   public func hash(into hasher: inout Hasher) {
-    withBytes { hasher.combine(bytes: $0) }
+    withUnsafeBytes { hasher.combine(bytes: $0) }
   }
 }

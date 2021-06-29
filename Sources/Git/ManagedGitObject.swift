@@ -21,7 +21,9 @@ class ManagedGitObject: ManagedBuffer<OpaquePointer, GitCallbacks> {
 
   func withObjectPointer<Result>(_ body: (OpaquePointer) throws -> Result) rethrows -> Result {
     try withUnsafeMutablePointerToHeader { header in
-      try body(header.pointee)
+      let pointer = header.move()
+      defer { header.initialize(to: pointer) }
+      return try body(pointer)
     }
   }
 
