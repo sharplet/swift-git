@@ -43,6 +43,20 @@ extension GitError {
   }
 }
 
+extension GitError: CustomNSError {
+  public var errorCode: Int {
+    Int(code.rawValue)
+  }
+
+  public var errorUserInfo: [String: Any] {
+    let userInfo = [
+      NSLocalizedDescriptionKey: errorDescription,
+      NSLocalizedFailureReasonErrorKey: failureReason,
+    ]
+    return userInfo.compactMapValues { $0 }
+  }
+}
+
 extension GitError: LocalizedError {
   public var errorDescription: String? {
     details?.errorDescription

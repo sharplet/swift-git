@@ -22,29 +22,13 @@ public struct Index {
 
   public subscript(path: FilePath) -> Index.Entry? {
     _object.withUnsafePointer { index in
-      git_index_get_bypath(index, path.string, GIT_INDEX_STAGE_ANY.rawValue)
+      return git_index_get_bypath(index, path.string, GIT_INDEX_STAGE_NORMAL.rawValue)
         .map(Entry.init)
     }
   }
 }
 
 extension Index {
-//  public func contents(ofFileAt path: FilePath) throws -> Data {
-//    guard let repo = repo else { throw RepositoryError.notOpened }
-//
-//    var i = 0
-//    try check(git_index_find(&i, index._index, path.string))
-//    let entry = git_index_get_byindex(index._index, i)!
-//
-//    var blob: OpaquePointer!
-//    try check(git_blob_lookup(&blob, repo.pointer, entry[\.id]))
-//    defer { git_blob_free(blob) }
-//
-//    let count = Int(git_blob_rawsize(blob))
-//    let bytes = git_blob_rawcontent(blob)!
-//    return Data(bytes: bytes, count: count)
-//  }
-
   public func readTree<Reference: Git.Reference>(at reference: Reference) throws {
     try read(Tree(reference))
   }
