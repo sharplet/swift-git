@@ -1,7 +1,7 @@
 import Cgit2
 
-public struct AnyGitObject: GitObject {
-  let _object: ManagedGitObject
+public struct AnyGitObject: ManagedGitObject {
+  let _object: ManagedGitPointer
   public let id: ObjectID
   public let repository: Repository
 
@@ -9,7 +9,7 @@ public struct AnyGitObject: GitObject {
     do {
       let callbacks = GitCallbacks(free: git_object_free)
       self._object = try .create(withCallbacks: callbacks, operation: "git_object_lookup") { pointer in
-        repository._object.withUnsafePointer { repository in
+        repository.withUnsafePointer { repository in
           id.withUnsafePointer { oid in
             git_object_lookup(&pointer, repository, oid, GIT_OBJECT_ANY)
           }

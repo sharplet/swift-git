@@ -2,26 +2,30 @@ import Cgit2
 import SystemPackage
 
 public struct Index {
-  let _object: ManagedGitObject
+  let _index: ManagedGitPointer
 
   public init() throws {
     let callbacks = GitCallbacks(free: git_index_free)
-    self._object = try .create(withCallbacks: callbacks, operation: "git_index_new") { pointer in
+    self._index = try .create(withCallbacks: callbacks, operation: "git_index_new") { pointer in
       git_index_new(&pointer)
     }
   }
 
   public init(repository: Repository) throws {
     let callbacks = GitCallbacks(free: git_index_free)
-    self._object = try .create(withCallbacks: callbacks, operation: "git_repository_index") { pointer in
-      repository._object.withUnsafePointer { repository in
+    self._index = try .create(withCallbacks: callbacks, operation: "git_repository_index") { pointer in
+      repository.withUnsafePointer { repository in
         git_repository_index(&pointer, repository)
       }
     }
   }
 
+  func withUnsafePointer<Result>(_ body: (OpaquePointer) throws -> Result) rethrows -> Result {
+    try _index.withUnsafePointer(body)
+  }
+
   public subscript(path: FilePath) -> Index.Entry? {
-    _object.withUnsafePointer { index in
+    withUnsafePointer { index in
       return git_index_get_bypath(index, path.string, GIT_INDEX_STAGE_NORMAL.rawValue)
         .map(Entry.init)
     }
@@ -34,8 +38,8 @@ extension Index {
   }
 
   public func read(_ tree: Tree) throws {
-    let code = _object.withUnsafePointer { index in
-      tree._object.withUnsafePointer { tree in
+    let code = withUnsafePointer { index in
+      tree.withUnsafePointer { tree in
         git_index_read_tree(index, tree)
       }
     }
@@ -67,11 +71,11 @@ extension Index {
     }
 
     public var endIndex: Int {
-      index._object.withUnsafePointer(git_index_entrycount)
+      index.withUnsafePointer(git_index_entrycount)
     }
 
     public subscript(position: Int) -> Index.Entry {
-      index._object.withUnsafePointer { index in
+      index.withUnsafePointer { index in
         Entry(git_index_get_byindex(index, position))
       }
     }

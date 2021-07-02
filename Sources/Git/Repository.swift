@@ -4,11 +4,11 @@ import struct Foundation.URL
 import SystemPackage
 
 public struct Repository {
-  let _object: ManagedGitObject
+  let _repository: ManagedGitPointer
   private var _index: Index!
 
-  fileprivate init(_object: ManagedGitObject) throws {
-    self._object = _object
+  fileprivate init(_repository: ManagedGitPointer) throws {
+    self._repository = _repository
     do {
       self._index = try Index(repository: self)
     } catch GitError.notFound {
@@ -16,15 +16,19 @@ public struct Repository {
     }
   }
 
+  func withUnsafePointer<Result>(_ body: (OpaquePointer) throws -> Result) rethrows -> Result {
+    try _repository.withUnsafePointer(body)
+  }
+
   public var index: Index {
     _index
   }
 
   public func head() throws -> AnyReference {
-    try _object.withUnsafePointer { repo in
+    try withUnsafePointer { repo in
       let callbacks = GitCallbacks(free: git_reference_free)
       return AnyReference(
-        _object: try .create(withCallbacks: callbacks, operation: "git_repository_head") { pointer in
+        _reference: try .create(withCallbacks: callbacks, operation: "git_repository_head") { pointer in
           git_repository_head(&pointer, repo)
         },
         repository: self
@@ -119,7 +123,7 @@ extension Repository {
     credential: Credential
   ) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
-    let repository = try Repository(_object: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
+    let repository = try Repository(_repository: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
       credential.withCallback { callbackInfo in
         var code: CInt = 0 {
           didSet {
@@ -162,7 +166,7 @@ extension Repository {
     _ remote: Remote,
     credential: Credential
   ) throws {
-    try remote._object.withUnsafePointer { remote in
+    try remote.withUnsafePointer { remote in
       try credential.withCallback { credential in
         var code: CInt = 0 {
           didSet {
@@ -189,7 +193,7 @@ extension Repository {
 
   public static func `open`(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
-    let repository: ManagedGitObject
+    let repository: ManagedGitPointer
 
     do {
       repository = try .create(withCallbacks: callbacks, operation: "git_repository_open") { pointer in
@@ -205,7 +209,7 @@ extension Repository {
       }
     }
 
-    return try Repository(_object: repository)
+    return try Repository(_repository: repository)
   }
 }
 
@@ -219,7 +223,7 @@ extension Repository {
   }
 
   public func reset(to commit: Commit, type: ResetType) throws {
-    try _object.withUnsafePointer { repo in
+    try _repository.withUnsafePointer { repo in
       try commit._object.withUnsafePointer { commit in
         try GitError.check(git_reset(repo, commit, git_reset_t(type), nil), operation: "git_reset")
       }

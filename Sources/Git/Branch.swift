@@ -1,26 +1,26 @@
 import Cgit2
 
 public struct Branch: ManagedReference {
-  let _object: ManagedGitObject
+  let _reference: ManagedGitPointer
   public let repository: Repository
 
-  init(named name: String, ofType type: BranchType, in repo: Repository) throws {
+  init(named name: String, ofType type: BranchType, in repository: Repository) throws {
     let callbacks = GitCallbacks(free: git_reference_free)
-    self._object = try .create(withCallbacks: callbacks, operation: "git_branch_lookup") { pointer in
-      repo._object.withUnsafePointer { repo in
+    self._reference = try .create(withCallbacks: callbacks, operation: "git_branch_lookup") { pointer in
+      repository.withUnsafePointer { repo in
         git_branch_lookup(&pointer, repo, name, git_branch_t(type))
       }
     }
-    self.repository = repo
+    self.repository = repository
   }
 
-  init(_object: ManagedGitObject, repository: Repository) {
-    self._object = _object
+  init(_pointer: ManagedGitPointer, repository: Repository) {
+    self._reference = _pointer
     self.repository = repository
   }
 
   public var shorthand: String {
-    _object.withUnsafePointer { branch in
+    withUnsafePointer { branch in
       var name: UnsafePointer<CChar>!
       let code = git_branch_name(&name, branch)
       precondition(GIT_OK ~= code)
@@ -29,11 +29,11 @@ public struct Branch: ManagedReference {
   }
 
   public var upstream: Branch? {
-    _object.withUnsafePointer { branch in
+    withUnsafePointer { branch in
       do {
         let callbacks = GitCallbacks(free: git_reference_free)
         return Branch(
-          _object: try .create(withCallbacks: callbacks, operation: "git_branch_upstream") { upstream in
+          _pointer: try .create(withCallbacks: callbacks, operation: "git_branch_upstream") { upstream in
             git_branch_upstream(&upstream, branch)
           },
           repository: repository
@@ -46,8 +46,8 @@ public struct Branch: ManagedReference {
 
   public var upstreamRemote: Remote? {
     do {
-      let name = try repository._object.withUnsafePointer { repo -> String in
-        try _object.withUnsafePointer { branch in
+      let name = try repository.withUnsafePointer { repo -> String in
+        try withUnsafePointer { branch in
           var buffer = git_buf()
           let fullName = git_reference_name(branch)
           try GitError.check(git_branch_upstream_remote(&buffer, repo, fullName), operation: "git_branch_upstream_remote")

@@ -1,8 +1,8 @@
 import Cgit2
 import Foundation
 
-public struct Blob: GitObject {
-  let _object: ManagedGitObject
+public struct Blob: ManagedGitObject {
+  let _object: ManagedGitPointer
   public let id: ObjectID
   public let repository: Repository
 
@@ -12,7 +12,7 @@ public struct Blob: GitObject {
       self.id = id
       self.repository = repository
       self._object = try .create(withCallbacks: callbacks, operation: "git_blob_lookup") { pointer in
-        repository._object.withUnsafePointer { repository in
+        repository.withUnsafePointer { repository in
           id.withUnsafePointer { oid in
             git_blob_lookup(&pointer, repository, oid)
           }

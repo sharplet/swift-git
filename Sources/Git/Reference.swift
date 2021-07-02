@@ -12,29 +12,11 @@ extension Reference {
   }
 
   public var commitID: ObjectID {
-    repository._object.withUnsafePointer { repository in
+    repository.withUnsafePointer { repository in
       var id = git_oid()
       let code = git_reference_name_to_id(&id, repository, fullName)
       precondition(GIT_OK ~= code)
       return ObjectID(id)
-    }
-  }
-}
-
-protocol ManagedReference: Reference {
-  var _object: ManagedGitObject { get }
-}
-
-extension ManagedReference {
-  public var fullName: String {
-    _object.withUnsafePointer { reference in
-      String(cString: git_reference_name(reference))
-    }
-  }
-
-  public var shorthand: String {
-    _object.withUnsafePointer { reference in
-      String(cString: git_reference_shorthand(reference))
     }
   }
 }
