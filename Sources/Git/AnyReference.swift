@@ -1,29 +1,23 @@
 import Cgit2
 
-public struct AnyReference {
+public struct AnyReference: ManagedReference {
   private(set) var _object: ManagedGitObject
   public let repository: Repository
 
   public mutating func setTarget<Target: Reference>(_ target: Target, symbolic: Bool) throws {
     let callbacks = GitCallbacks(free: git_reference_free)
-    _object = try .create(withCallbacks: callbacks) { pointer in
-      _object.withObjectPointer { oldPointer in
+    _object = try .create(withCallbacks: callbacks, operation: "git_reference_set_target") { pointer in
+      _object.withUnsafePointer { oldPointer in
         if symbolic {
-          return git_reference_symbolic_set_target(&pointer, oldPointer, target.name, "set_target (symbolic): \(target.name)")
+          return target.repository._object.withUnsafePointer { repository in
+            git_reference_symbolic_create(&pointer, repository, "HEAD", target.fullName, /* force: */ 1, "set_target (symbolic): \(target.fullName)")
+          }
         } else {
           return target.commitID.withUnsafePointer { oid in
-            git_reference_set_target(&pointer, oldPointer, oid, "set_target (direct): \(target.name)")
+            git_reference_set_target(&pointer, oldPointer, oid, "set_target (direct): \(target.fullName)")
           }
         }
       }
-    }
-  }
-}
-
-extension AnyReference: Reference {
-  public var name: String {
-    _object.withObjectPointer { reference in
-      String(cString: git_reference_name(reference))
     }
   }
 }

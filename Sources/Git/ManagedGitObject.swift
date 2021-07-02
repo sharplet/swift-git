@@ -4,22 +4,24 @@ struct GitCallbacks {
   var free: @convention(c) (OpaquePointer?) -> Void
 }
 
-class ManagedGitObject: ManagedBuffer<OpaquePointer, GitCallbacks> {
+class ManagedGitObject: ManagedBuffer<OpaquePointer, GitCallbacks?> {
   static func create(
     withCallbacks callbacks: GitCallbacks,
+    operation: @autoclosure () -> String,
     makingObjectWith `init`: (inout OpaquePointer?) -> CInt
   ) throws -> ManagedGitObject {
     try create(minimumCapacity: 1) { buffer in
       try buffer.withUnsafeMutablePointerToElements { elements in
+        elements.initialize(to: nil)
         var object: OpaquePointer!
-        try check(git_error_code(`init`(&object)))
-        elements.initialize(to: callbacks)
+        try GitError.check(`init`(&object), operation: operation())
+        elements.pointee = callbacks
         return object
       }
     } as! ManagedGitObject
   }
 
-  func withObjectPointer<Result>(_ body: (OpaquePointer) throws -> Result) rethrows -> Result {
+  func withUnsafePointer<Result>(_ body: (OpaquePointer) throws -> Result) rethrows -> Result {
     try withUnsafeMutablePointerToHeader { header in
       let pointer = header.move()
       defer { header.initialize(to: pointer) }
@@ -30,7 +32,7 @@ class ManagedGitObject: ManagedBuffer<OpaquePointer, GitCallbacks> {
   deinit {
     withUnsafeMutablePointers { header, callbacks in
       let (object, callbacks) = (header.move(), callbacks.move())
-      callbacks.free(object)
+      callbacks?.free(object)
     }
   }
 }

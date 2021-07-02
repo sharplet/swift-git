@@ -1,13 +1,13 @@
 import Cgit2
 
-public struct Branch {
+public struct Branch: ManagedReference {
   let _object: ManagedGitObject
   public let repository: Repository
 
   init(named name: String, ofType type: BranchType, in repo: Repository) throws {
     let callbacks = GitCallbacks(free: git_reference_free)
-    self._object = try .create(withCallbacks: callbacks) { pointer in
-      repo._object.withObjectPointer { repo in
+    self._object = try .create(withCallbacks: callbacks, operation: "git_branch_lookup") { pointer in
+      repo._object.withUnsafePointer { repo in
         git_branch_lookup(&pointer, repo, name, git_branch_t(type))
       }
     }
@@ -19,18 +19,21 @@ public struct Branch {
     self.repository = repository
   }
 
-  public var fullName: String {
-    _object.withObjectPointer { branch in
-      String(cString: git_reference_name(branch))
+  public var shorthand: String {
+    _object.withUnsafePointer { branch in
+      var name: UnsafePointer<CChar>!
+      let code = git_branch_name(&name, branch)
+      precondition(GIT_OK ~= code)
+      return String(cString: name)
     }
   }
 
   public var upstream: Branch? {
-    _object.withObjectPointer { branch in
+    _object.withUnsafePointer { branch in
       do {
         let callbacks = GitCallbacks(free: git_reference_free)
         return Branch(
-          _object: try .create(withCallbacks: callbacks) { upstream in
+          _object: try .create(withCallbacks: callbacks, operation: "git_branch_upstream") { upstream in
             git_branch_upstream(&upstream, branch)
           },
           repository: repository
@@ -43,11 +46,11 @@ public struct Branch {
 
   public var upstreamRemote: Remote? {
     do {
-      let name = try repository._object.withObjectPointer { repo -> String in
-        try _object.withObjectPointer { branch in
+      let name = try repository._object.withUnsafePointer { repo -> String in
+        try _object.withUnsafePointer { branch in
           var buffer = git_buf()
           let fullName = git_reference_name(branch)
-          try check(git_branch_upstream_remote(&buffer, repo, fullName))
+          try GitError.check(git_branch_upstream_remote(&buffer, repo, fullName), operation: "git_branch_upstream_remote")
           return String(decoding: buffer, freeWhenDone: true)
         }
       }
@@ -60,17 +63,10 @@ public struct Branch {
 
 extension Branch {
   public init?<Other: Reference>(_ reference: Other) {
-    try? self.init(named: reference.name, ofType: .all, in: reference.repository)
-  }
-}
-
-extension Branch: Reference {
-  public var name: String {
-    _object.withObjectPointer { branch in
-      var name: UnsafePointer<CChar>!
-      let code = git_branch_name(&name, branch)
-      precondition(GIT_OK ~= code)
-      return String(cString: name)
+    do {
+      try self.init(named: reference.shorthand, ofType: .local, in: reference.repository)
+    } catch {
+      try? self.init(named: reference.shorthand, ofType: .remote, in: reference.repository)
     }
   }
 }

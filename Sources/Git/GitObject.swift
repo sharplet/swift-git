@@ -1,13 +1,22 @@
 import Cgit2
 
-/// Workaround for Identifiable not being available on older platform versions.
-/// Prefer `Object` if it is available.
-protocol _BaseObject {
+protocol GitObject: Hashable {
   var id: ObjectID { get }
+  var repository: Repository { get }
+  init?(id: ObjectID, in repository: Repository)
 }
 
-@available(iOS 13, macOS 10.15, *)
-protocol Object: _BaseObject, Identifiable {}
+extension GitObject {
+  public static func ==(lhs: Self, rhs: Self) -> Bool {
+    lhs.id == rhs.id
+  }
+}
+
+extension GitObject {
+  public func hash(into hasher: inout Hasher) {
+    hasher.combine(id)
+  }
+}
 
 public struct ObjectID: RawRepresentable {
   static var _byteCount: Int {
