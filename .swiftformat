@@ -1,2 +1,5 @@
+--disable extensionAccessControl
 --indent 2
+--self init-only
+--stripunusedargs closure-only
 --swiftversion 5.4

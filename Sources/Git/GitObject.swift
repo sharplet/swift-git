@@ -7,7 +7,7 @@ protocol GitObject: Hashable {
 }
 
 extension GitObject {
-  public static func ==(lhs: Self, rhs: Self) -> Bool {
+  public static func == (lhs: Self, rhs: Self) -> Bool {
     lhs.id == rhs.id
   }
 }

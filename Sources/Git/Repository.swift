@@ -194,7 +194,7 @@ extension Repository {
     }
   }
 
-  public static func `open`(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
+  public static func open(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
     let repository: ManagedGitPointer
 

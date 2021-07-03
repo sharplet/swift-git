@@ -26,7 +26,7 @@ public struct Index {
 
   public subscript(path: FilePath) -> Index.Entry? {
     withUnsafePointer { index in
-      return git_index_get_bypath(index, path.string, GIT_INDEX_STAGE_NORMAL.rawValue)
+      git_index_get_bypath(index, path.string, GIT_INDEX_STAGE_NORMAL.rawValue)
         .map(Entry.init)
     }
   }

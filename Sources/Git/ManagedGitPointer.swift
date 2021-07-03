@@ -8,7 +8,7 @@ class ManagedGitPointer: ManagedBuffer<OpaquePointer, GitCallbacks?> {
   static func create(
     withCallbacks callbacks: GitCallbacks,
     operation: @autoclosure () -> String,
-    makingObjectWith `init`: (inout OpaquePointer?) throws -> CInt
+    makingObjectWith init: (inout OpaquePointer?) throws -> CInt
   ) throws -> ManagedGitPointer {
     try create(minimumCapacity: 1) { buffer in
       try buffer.withUnsafeMutablePointerToElements { elements in

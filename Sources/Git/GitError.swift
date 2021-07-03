@@ -166,18 +166,18 @@ extension GitErrorClass: CustomStringConvertible {
 }
 
 extension git_error_code {
-  public static func ~=(pattern: git_error_code, code: CInt) -> Bool {
+  public static func ~= (pattern: git_error_code, code: CInt) -> Bool {
     pattern.rawValue == code
   }
 }
 
 extension GitErrorCode {
-  public static func ~=(pattern: GitErrorCode, error: Error) -> Bool {
+  public static func ~= (pattern: GitErrorCode, error: Error) -> Bool {
     let error = error as NSError
     return error.domain == GitError.errorDomain && error.code == pattern.rawValue
   }
 
-  public static func ~=(pattern: GitErrorCode, code: CInt) -> Bool {
+  public static func ~= (pattern: GitErrorCode, code: CInt) -> Bool {
     pattern.rawValue == code
   }
 }
