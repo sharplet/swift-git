@@ -1,6 +1,5 @@
 import Cgit2
-import struct Foundation.Data
-import struct Foundation.URL
+import Foundation
 import SystemPackage
 
 public struct Repository {
@@ -111,81 +110,85 @@ extension Repository {
   public static func clone(
     to path: FilePath,
     from url: URL,
-    options: CloneOptions = .default
+    options: CloneOptions = .default,
+    progressHandler: ((git_transfer_progress) -> Void)? = nil
   ) throws -> Repository {
-    try clone(to: path, from: url, options: options, credential: .none)
+    try clone(
+      to: path,
+      from: url,
+      options: options,
+      credential: .none,
+      progressHandler: progressHandler
+    )
   }
 
   public static func clone<Credential: Git.Credential>(
     to path: FilePath,
     from url: URL,
     options: CloneOptions = .default,
-    credential: Credential
+    credential: Credential,
+    progressHandler: ((git_transfer_progress) -> Void)? = nil
   ) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
     let repository = try Repository(_repository: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
-      credential.withCallback { callbackInfo in
-        var code: CInt = 0 {
-          didSet {
-            precondition(GIT_OK ~= code)
-          }
+      var code: CInt = 0 {
+        didSet {
+          precondition(GIT_OK ~= code)
         }
+      }
 
-        var cloneOptions = git_clone_options()
-        code = git_clone_init_options(&cloneOptions, UInt32(GIT_CLONE_OPTIONS_VERSION))
+      let delegate = FetchDelegate(
+        credential: credential,
+        progressHandler: progressHandler
+      )
 
-        if let callbackInfo = callbackInfo {
-          var callbacks = git_remote_callbacks()
-          code = git_remote_init_callbacks(&callbacks, UInt32(GIT_REMOTE_CALLBACKS_VERSION))
-          callbacks.credentials = callbackInfo.callback
-          callbacks.payload = callbackInfo.payload
+      var fetchOptions = git_fetch_options()
+      code = git_fetch_init_options(&fetchOptions, UInt32(GIT_FETCH_OPTIONS_VERSION))
+      fetchOptions.callbacks = delegate.callbacks
 
-          var fetchOptions = git_fetch_options()
-          code = git_fetch_init_options(&fetchOptions, UInt32(GIT_FETCH_OPTIONS_VERSION))
-          fetchOptions.callbacks = callbacks
+      var cloneOptions = git_clone_options()
+      code = git_clone_init_options(&cloneOptions, UInt32(GIT_CLONE_OPTIONS_VERSION))
+      cloneOptions.fetch_opts = fetchOptions
 
-          cloneOptions.fetch_opts = fetchOptions
-        }
+      if options.bareRepository {
+        cloneOptions.bare = 1
+      }
 
-        if options.bareRepository {
-          cloneOptions.bare = 1
-        }
-
-        return git_clone(&pointer, url.absoluteString, path.string, &cloneOptions)
+      return withExtendedLifetime(delegate) {
+        git_clone(&pointer, url.absoluteString, path.string, &cloneOptions)
       }
     })
     print("cloned to '\(path)'")
     return repository
   }
 
-  public func fetch(_ remote: Remote) throws {
-    try fetch(remote, credential: .none)
+  public func fetch(_ remote: Remote, progressHandler: ((git_transfer_progress) -> Void)? = nil) throws {
+    try fetch(remote, credential: .none, progressHandler: progressHandler)
   }
 
   public func fetch<Credential: Git.Credential>(
     _ remote: Remote,
-    credential: Credential
+    credential: Credential,
+    progressHandler: ((git_transfer_progress) -> Void)? = nil
   ) throws {
     try remote.withUnsafePointer { remote in
-      try credential.withCallback { credential in
-        var code: CInt = 0 {
-          didSet {
-            precondition(GIT_OK ~= code)
-          }
+      var code: CInt = 0 {
+        didSet {
+          precondition(GIT_OK ~= code)
         }
+      }
 
-        var options = git_fetch_options()
-        code = git_fetch_init_options(&options, UInt32(GIT_FETCH_OPTIONS_VERSION))
-        precondition(GIT_OK ~= code)
+      let delegate = FetchDelegate(
+        credential: credential,
+        progressHandler: progressHandler
+      )
 
-        if let credential = credential {
-          var callbacks = git_remote_callbacks()
-          code = git_remote_init_callbacks(&callbacks, UInt32(GIT_REMOTE_CALLBACKS_VERSION))
-          callbacks.credentials = credential.callback
-          callbacks.payload = credential.payload
-          options.callbacks = callbacks
-        }
+      var options = git_fetch_options()
+      code = git_fetch_init_options(&options, UInt32(GIT_FETCH_OPTIONS_VERSION))
+      precondition(GIT_OK ~= code)
+      options.callbacks = delegate.callbacks
 
+      try withExtendedLifetime(delegate) {
         try GitError.check(git_remote_fetch(remote, nil, &options, nil), operation: "git_remote_fetch")
       }
     }

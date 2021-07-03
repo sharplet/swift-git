@@ -1,7 +1,12 @@
 import Cgit2
 
 public protocol Credential {
-  func withCallback<Result>(_ body: (CredentialCallback?) throws -> Result) rethrows -> Result
+  func getCredential(
+    _ credential: UnsafeMutablePointer<UnsafeMutablePointer<git_credential>?>!,
+    url: UnsafePointer<CChar>!,
+    usernameFromURL username: UnsafePointer<CChar>?,
+    allowedTypes: CUnsignedInt
+  ) -> CInt
 }
 
 public struct CredentialCallback {
@@ -17,8 +22,7 @@ public struct CredentialCallback {
   }
 }
 
-// MARK: -
-// MARK: Plain text credentials
+// MARK: - Plain text credentials
 
 extension Credential where Self == PlainTextCredential {
   public static func plainText(username: String, password: String) -> PlainTextCredential {
@@ -32,24 +36,17 @@ public struct PlainTextCredential {
 }
 
 extension PlainTextCredential: Credential {
-  public func withCallback<Result>(_ body: (CredentialCallback?) throws -> Result) rethrows -> Result {
-    try username.withCString { username in
-      try password.withCString { password in
-        var credential = git_credential_userpass_payload(username: username, password: password)
-        return try withUnsafeMutablePointer(to: &credential) { credential in
-          try body(
-            CredentialCallback(
-              callback: git_cred_userpass,
-              payload: UnsafeMutableRawPointer(credential)
-            )
-          )
-        }
-      }
-    }
+  public func getCredential(
+    _ credential: UnsafeMutablePointer<UnsafeMutablePointer<git_credential>?>!,
+    url: UnsafePointer<CChar>!,
+    usernameFromURL: UnsafePointer<CChar>?,
+    allowedTypes: CUnsignedInt
+  ) -> CInt {
+    git_credential_userpass_plaintext_new(credential, username, password)
   }
 }
 
-// MARK: Null credentials
+// MARK: - Null credentials
 
 extension Credential where Self == NullCredential {
   public static var none: NullCredential {
@@ -58,7 +55,12 @@ extension Credential where Self == NullCredential {
 }
 
 public struct NullCredential: Credential {
-  public func withCallback<Result>(_ body: (CredentialCallback?) throws -> Result) rethrows -> Result {
-    try body(nil)
+  public func getCredential(
+    _ credential: UnsafeMutablePointer<UnsafeMutablePointer<git_credential>?>!,
+    url: UnsafePointer<CChar>!,
+    usernameFromURL username: UnsafePointer<CChar>?,
+    allowedTypes: CUnsignedInt
+  ) -> CInt {
+    1
   }
 }
