@@ -111,7 +111,7 @@ extension Repository {
     to path: FilePath,
     from url: URL,
     options: CloneOptions = .default,
-    progressHandler: ((git_transfer_progress) -> Void)? = nil
+    progressHandler: ((TransferProgress) -> Void)? = nil
   ) throws -> Repository {
     try clone(
       to: path,
@@ -127,7 +127,7 @@ extension Repository {
     from url: URL,
     options: CloneOptions = .default,
     credential: Credential,
-    progressHandler: ((git_transfer_progress) -> Void)? = nil
+    progressHandler: ((TransferProgress) -> Void)? = nil
   ) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
     let repository = try Repository(_repository: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
@@ -162,14 +162,14 @@ extension Repository {
     return repository
   }
 
-  public func fetch(_ remote: Remote, progressHandler: ((git_transfer_progress) -> Void)? = nil) throws {
+  public func fetch(_ remote: Remote, progressHandler: ((TransferProgress) -> Void)? = nil) throws {
     try fetch(remote, credential: .none, progressHandler: progressHandler)
   }
 
   public func fetch<Credential: Git.Credential>(
     _ remote: Remote,
     credential: Credential,
-    progressHandler: ((git_transfer_progress) -> Void)? = nil
+    progressHandler: ((TransferProgress) -> Void)? = nil
   ) throws {
     try remote.withUnsafePointer { remote in
       var code: CInt = 0 {

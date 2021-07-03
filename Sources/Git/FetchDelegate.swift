@@ -2,9 +2,9 @@ import Cgit2
 
 final class FetchDelegate {
   let credential: Credential?
-  let progressHandler: ((git_transfer_progress) -> Void)?
+  let progressHandler: ((TransferProgress) -> Void)?
 
-  init(credential: Credential?, progressHandler: ((git_transfer_progress) -> Void)?) {
+  init(credential: Credential?, progressHandler: ((TransferProgress) -> Void)?) {
     self.credential = credential
     self.progressHandler = progressHandler
   }
@@ -42,7 +42,10 @@ private extension FetchDelegate {
   }
 
   func updateTransferProgress(with stats: UnsafePointer<git_transfer_progress>) {
-    progressHandler?(stats.pointee)
+    if let progressHandler = progressHandler {
+      let progress = TransferProgress(stats.pointee)
+      progressHandler(progress)
+    }
   }
 }
 
