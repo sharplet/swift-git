@@ -11,7 +11,10 @@ final class FetchDelegate {
 
   var callbacks: git_remote_callbacks {
     var callbacks = git_remote_callbacks()
-    let code = git_remote_init_callbacks(&callbacks, UInt32(GIT_REMOTE_CALLBACKS_VERSION))
+    let code = git_remote_init_callbacks(
+      &callbacks,
+      UInt32(GIT_REMOTE_CALLBACKS_VERSION)
+    )
     precondition(GIT_OK ~= code)
     callbacks.payload = Unmanaged.passUnretained(self).toOpaque()
 
@@ -50,13 +53,10 @@ private extension FetchDelegate {
 }
 
 extension FetchDelegate {
-  static let credentialsCallback: git_credential_acquire_cb = { credential, url, usernameFromURL, allowedTypes, payload in
-    FetchDelegate.fromPayload(payload).nextCredential(
-      credential,
-      url: url,
-      usernameFromURL: usernameFromURL,
-      allowedTypes: allowedTypes
-    )
+  static let credentialsCallback: git_credential_acquire_cb = {
+    FetchDelegate
+      .fromPayload($4)
+      .nextCredential($0, url: $1, usernameFromURL: $2, allowedTypes: $3)
   }
 
   static let transferProgressCallback: git_transfer_progress_cb = { stats, payload in

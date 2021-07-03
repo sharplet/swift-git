@@ -1,2 +1,7 @@
+disabled_rules:
+  - force_cast
+  - force_try
+  - identifier_name
+  - nesting
 trailing_comma:
   mandatory_comma: true
