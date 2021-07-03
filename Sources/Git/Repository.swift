@@ -117,7 +117,7 @@ extension Repository {
       to: path,
       from: url,
       options: options,
-      credential: .none,
+      credential: NullCredential(),
       progressHandler: progressHandler
     )
   }
@@ -163,7 +163,7 @@ extension Repository {
   }
 
   public func fetch(_ remote: Remote, progressHandler: ((TransferProgress) -> Void)? = nil) throws {
-    try fetch(remote, credential: .none, progressHandler: progressHandler)
+    try fetch(remote, credential: NullCredential(), progressHandler: progressHandler)
   }
 
   public func fetch<Credential: Git.Credential>(
