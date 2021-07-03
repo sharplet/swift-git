@@ -50,7 +50,10 @@ public struct Branch: ManagedReference {
         try withUnsafePointer { branch in
           var buffer = git_buf()
           let fullName = git_reference_name(branch)
-          try GitError.check(git_branch_upstream_remote(&buffer, repo, fullName), operation: "git_branch_upstream_remote")
+          try GitError.check(
+            git_branch_upstream_remote(&buffer, repo, fullName),
+            operation: "git_branch_upstream_remote"
+          )
           return String(decoding: buffer, freeWhenDone: true)
         }
       }
