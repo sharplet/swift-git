@@ -164,6 +164,37 @@ extension Repository {
     return repository
   }
 
+  public static func open(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
+    let callbacks = GitCallbacks(free: git_repository_free)
+    let repository: ManagedGitPointer
+
+    do {
+      repository = try .create(withCallbacks: callbacks, operation: "git_repository_open") { pointer in
+        git_repository_open(&pointer, path.string)
+      }
+    } catch GitError.notFound where options.initIfNecessary {
+      repository = try .create(withCallbacks: callbacks, operation: "git_repository_init_ext") { pointer in
+        var initOptions = git_repository_init_options()
+        let code = git_repository_init_init_options(&initOptions, UInt32(GIT_REPOSITORY_INIT_OPTIONS_VERSION))
+        precondition(GIT_OK ~= code)
+        initOptions.flags = options.initOptions.rawValue
+        return git_repository_init_ext(&pointer, path.string, &initOptions)
+      }
+    }
+
+    return try Repository(path: path, _repository: repository)
+  }
+}
+
+extension Repository {
+  public func branch(named name: String, type: Branch.BranchType) throws -> Branch? {
+    do {
+      return try Branch(named: name, ofType: type, in: self)
+    } catch GitError.notFound {
+      return nil
+    }
+  }
+
   public func fetch(_ remote: Remote, progressHandler: ((TransferProgress) -> Void)? = nil) throws {
     try fetch(remote, credential: NullCredential(), progressHandler: progressHandler)
   }
@@ -193,37 +224,6 @@ extension Repository {
       try withExtendedLifetime(delegate) {
         try GitError.check(git_remote_fetch(remote, nil, &options, nil), operation: "git_remote_fetch")
       }
-    }
-  }
-
-  public static func open(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
-    let callbacks = GitCallbacks(free: git_repository_free)
-    let repository: ManagedGitPointer
-
-    do {
-      repository = try .create(withCallbacks: callbacks, operation: "git_repository_open") { pointer in
-        git_repository_open(&pointer, path.string)
-      }
-    } catch GitError.notFound where options.initIfNecessary {
-      repository = try .create(withCallbacks: callbacks, operation: "git_repository_init_ext") { pointer in
-        var initOptions = git_repository_init_options()
-        let code = git_repository_init_init_options(&initOptions, UInt32(GIT_REPOSITORY_INIT_OPTIONS_VERSION))
-        precondition(GIT_OK ~= code)
-        initOptions.flags = options.initOptions.rawValue
-        return git_repository_init_ext(&pointer, path.string, &initOptions)
-      }
-    }
-
-    return try Repository(path: path, _repository: repository)
-  }
-}
-
-extension Repository {
-  public func branch(named name: String, type: Branch.BranchType) throws -> Branch? {
-    do {
-      return try Branch(named: name, ofType: type, in: self)
-    } catch GitError.notFound {
-      return nil
     }
   }
 
