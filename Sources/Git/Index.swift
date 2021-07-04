@@ -1,5 +1,4 @@
 import Cgit2
-import SystemPackage
 
 public struct Index {
   let _index: ManagedGitPointer

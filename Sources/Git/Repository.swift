@@ -1,6 +1,4 @@
 import Cgit2
-import Foundation
-import SystemPackage
 
 public struct Repository {
   public let path: FilePath
