@@ -109,14 +109,14 @@ extension Repository {
 
 extension Repository {
   public static func clone(
-    to path: FilePath,
     from url: URL,
+    to path: FilePath,
     options: CloneOptions = .default,
     progressHandler: ((TransferProgress) -> Void)? = nil
   ) throws -> Repository {
     try clone(
-      to: path,
       from: url,
+      to: path,
       options: options,
       credential: NullCredential(),
       progressHandler: progressHandler
@@ -124,8 +124,8 @@ extension Repository {
   }
 
   public static func clone<Credential: Git.Credential>(
-    to path: FilePath,
     from url: URL,
+    to path: FilePath,
     options: CloneOptions = .default,
     credential: Credential,
     progressHandler: ((TransferProgress) -> Void)? = nil
