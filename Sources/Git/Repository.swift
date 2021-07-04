@@ -164,6 +164,16 @@ extension Repository {
     return repository
   }
 
+  public static func current() throws -> Repository {
+    let path: FilePath
+    do {
+      var buffer = git_buf()
+      try GitError.check(git_repository_discover(&buffer, ".", 0, nil), operation: "git_repository_discover")
+      path = FilePath(String(decoding: buffer, freeWhenDone: true))
+    }
+    return try open(at: path)
+  }
+
   public static func open(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
     var path = path
