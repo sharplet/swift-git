@@ -240,11 +240,44 @@ extension Repository {
     }
   }
 
+  @discardableResult
+  public func makeBranch(_ name: String, switch: Bool = false) throws -> Branch {
+    try makeBranch(name, target: head(), switch: `switch`)
+  }
+
+  @discardableResult
+  public func makeBranch<Target: Reference>(_ name: String, target: Target, switch: Bool = false) throws -> Branch {
+    let callbacks = GitCallbacks(free: git_reference_free)
+    let branch = try withUnsafePointer { repository in
+      try target.commit.withUnsafePointer { target in
+        try Branch(
+          _pointer: .create(withCallbacks: callbacks, operation: "git_branch_create") { pointer in
+            git_branch_create(&pointer, repository, name, target, 0)
+          },
+          repository: self
+        )
+      }
+    }
+    if `switch` {
+      try self.switch(to: branch)
+    }
+    return branch
+  }
+
   public func reset(to commit: Commit, type: ResetType) throws {
     try _repository.withUnsafePointer { repo in
       try commit._object.withUnsafePointer { commit in
         try GitError.check(git_reset(repo, commit, git_reset_t(type), nil), operation: "git_reset")
       }
+    }
+  }
+
+  public func `switch`(to branch: Branch) throws {
+    try withUnsafePointer { repository in
+      try GitError.check(
+        git_repository_set_head(repository, branch.fullName),
+        operation: "git_repository_set_head"
+      )
     }
   }
 }
