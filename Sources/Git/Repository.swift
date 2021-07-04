@@ -3,10 +3,13 @@ import Foundation
 import SystemPackage
 
 public struct Repository {
+  public let path: FilePath
+
   let _repository: ManagedGitPointer
   private var _index: Index!
 
-  fileprivate init(_repository: ManagedGitPointer) throws {
+  fileprivate init(path: FilePath, _repository: ManagedGitPointer) throws {
+    self.path = path
     self._repository = _repository
     do {
       self._index = try Index(repository: self)
@@ -130,7 +133,7 @@ extension Repository {
     progressHandler: ((TransferProgress) -> Void)? = nil
   ) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
-    let repository = try Repository(_repository: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
+    let repository = try Repository(path: path, _repository: .create(withCallbacks: callbacks, operation: "git_clone") { pointer in
       var code: CInt = 0 {
         didSet {
           precondition(GIT_OK ~= code)
@@ -211,7 +214,7 @@ extension Repository {
       }
     }
 
-    return try Repository(_repository: repository)
+    return try Repository(path: path, _repository: repository)
   }
 }
 
