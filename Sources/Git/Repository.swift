@@ -166,6 +166,7 @@ extension Repository {
 
   public static func open(at path: FilePath, options: OpenOptions = .none) throws -> Repository {
     let callbacks = GitCallbacks(free: git_repository_free)
+    var path = path
     let repository: ManagedGitPointer
 
     do {
@@ -180,6 +181,10 @@ extension Repository {
         initOptions.flags = options.initOptions.rawValue
         return git_repository_init_ext(&pointer, path.string, &initOptions)
       }
+    }
+
+    if path.lastComponent == ".git" {
+      path.removeLastComponent()
     }
 
     return try Repository(path: path, _repository: repository)
