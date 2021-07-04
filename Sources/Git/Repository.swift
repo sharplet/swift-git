@@ -158,7 +158,6 @@ extension Repository {
         git_clone(&pointer, url.absoluteString, path.string, &cloneOptions)
       }
     })
-    print("cloned to '\(path)'")
     return repository
   }
 
