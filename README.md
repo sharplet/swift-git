@@ -34,12 +34,19 @@ swift-git is distributed as a Swift Package. Add it to your Package.swift file
 like so:
 
 ```swift
-let myPackage = Package(
+let package = Package(
   // ...
   dependencies: [
     .package(url: "https://github.com/sharplet/swift-git", from: "0.1.0"),
   ],
-  // ...
+  targets: [
+    .target(
+      name: "MyTarget",
+      dependencies: [
+        .product(name: "Git", package: "swift-git"),
+      ]
+    ),
+  ]
 )
 ```
 
