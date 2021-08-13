@@ -156,7 +156,9 @@ extension Repository {
       }
 
       return withExtendedLifetime(delegate) {
-        git_clone(&pointer, url.absoluteString, path.string, &cloneOptions)
+        path.withCString { path in
+          git_clone(&pointer, url.absoluteString, path, &cloneOptions)
+        }
       }
     })
     return repository
@@ -179,7 +181,9 @@ extension Repository {
 
     do {
       repository = try .create(withCallbacks: callbacks, operation: "git_repository_open") { pointer in
-        git_repository_open(&pointer, path.string)
+        path.withCString { path in
+          git_repository_open(&pointer, path)
+        }
       }
     } catch GitError.notFound where options.initIfNecessary {
       repository = try .create(withCallbacks: callbacks, operation: "git_repository_init_ext") { pointer in
@@ -187,12 +191,14 @@ extension Repository {
         let code = git_repository_init_init_options(&initOptions, UInt32(GIT_REPOSITORY_INIT_OPTIONS_VERSION))
         precondition(GIT_OK ~= code)
         initOptions.flags = options.initOptions.rawValue
-        return git_repository_init_ext(&pointer, path.string, &initOptions)
+        return path.withCString { path in
+          git_repository_init_ext(&pointer, path, &initOptions)
+        }
       }
     }
 
-    if path.lastComponent == ".git" {
-      path.removeLastComponent()
+    if path.swiftgit_lastComponent == ".git" {
+      path.swiftgit_removeLastComponent()
     }
 
     return try Repository(path: path, _repository: repository)

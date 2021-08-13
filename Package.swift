@@ -5,7 +5,7 @@ import PackageDescription
 let package = Package(
   name: "swift-git",
   platforms: [
-    .macOS(.v10_13),
+    .macOS(.v11),
     .iOS(.v11),
   ],
   products: [
@@ -16,7 +16,8 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-system", from: "0.0.2"),
   ],
   targets: [
-    .target(name: "Git", dependencies: [.cgit2, .system]),
+    .target(name: "Git", dependencies: ["GitSystem", .cgit2]),
+    .target(name: "GitSystem", dependencies: [.system]),
     .target(name: "swift_git_init", dependencies: [.cgit2]),
     .testTarget(name: "GitTests", dependencies: ["Git"]),
   ]
@@ -28,6 +29,10 @@ extension Target.Dependency {
   }
 
   static var system: Target.Dependency {
-    .product(name: "SystemPackage", package: "swift-system")
+    .product(
+      name: "SystemPackage",
+      package: "swift-system",
+      condition: .when(platforms: [.linux])
+    )
   }
 }
