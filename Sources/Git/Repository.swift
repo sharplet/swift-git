@@ -24,6 +24,12 @@ public struct Repository {
     _index
   }
 
+  public var isBare: Bool {
+    withUnsafePointer { repo in
+      git_repository_is_bare(repo) == 1
+    }
+  }
+
   public func head() throws -> AnyReference {
     try withUnsafePointer { repo in
       let callbacks = GitCallbacks(free: git_reference_free)
@@ -40,9 +46,14 @@ public struct Repository {
 extension Repository {
   public struct CloneOptions {
     public var bareRepository: Bool
+    public var checkoutOptions: CheckoutOptions
 
-    public init(bareRepository: Bool = false) {
+    public init(
+      bareRepository: Bool = false,
+      checkoutOptions: CheckoutOptions = .default
+    ) {
       self.bareRepository = bareRepository
+      self.checkoutOptions = checkoutOptions
     }
 
     public static var bareRepository: CloneOptions {
@@ -272,12 +283,19 @@ extension Repository {
     }
   }
 
-  public func `switch`(to branch: Branch) throws {
+  public func `switch`(to branch: Branch, options: CheckoutOptions = .default) throws {
     try withUnsafePointer { repository in
       try GitError.check(
         git_repository_set_head(repository, branch.fullName),
         operation: "git_repository_set_head"
       )
+      if git_repository_is_bare(repository) == 0 {
+        var options = try git_checkout_options(options)
+        try GitError.check(
+          git_checkout_head(repository, &options),
+          operation: "git_checkout_head"
+        )
+      }
     }
   }
 }
