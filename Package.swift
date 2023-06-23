@@ -13,7 +13,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/sharplet/swift-cgit2", from: "1.1.0"),
-    .package(url: "https://github.com/apple/swift-system", from: "0.0.2"),
+    .package(url: "https://github.com/apple/swift-system", from: "1.1.1"),
   ],
   targets: [
     .target(name: "Git", dependencies: [.cgit2, .system]),
